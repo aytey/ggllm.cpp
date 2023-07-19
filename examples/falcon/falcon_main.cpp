@@ -56,6 +56,22 @@ void sigint_handler(int signo) {
 }
 #endif
 
+int foo(std::string fname);
+
+gpt_params params;
+std::vector<falcon_token> session_tokens;
+    std::vector<falcon_token> embd_inp; // tokenized prompt
+    std::vector<falcon_token> inp_system = {}; // system prompt
+    std::vector<falcon_token> inp_system_baseline = {}; // system differential prompt
+    std::vector<falcon_token> inp_pfx = {}; // prefix to user prompt
+    std::vector<falcon_token> inp_sfx = {}; // suffix to user prompt
+    std::vector<std::vector<falcon_token>> stopwords = {};
+    falcon_context * ctx = nullptr;
+    falcon_context * ctx_system = nullptr;
+    falcon_model * main_model;
+    std::string path_session = params.path_prompt_cache;
+
+
 int main(int argc, char ** argv) {
     #if defined(_WIN32)
     SetConsoleOutputCP(CP_UTF8);
@@ -78,7 +94,6 @@ int main(int argc, char ** argv) {
     // Use utf8argv instead of argv
     argv = utf8argv.data();
     #endif
-    gpt_params params;
 
     if (gpt_params_parse(argc, argv, params) == false) {
         return 1;
@@ -145,9 +160,6 @@ int main(int argc, char ** argv) {
 
     falcon_init_backend();
 
-    falcon_context * ctx = nullptr;
-    falcon_context * ctx_system = nullptr;
-    falcon_model * main_model;
     g_ctx = &ctx;
 
     // load the model and apply lora adapter, if any
@@ -221,13 +233,6 @@ int main(int argc, char ** argv) {
 
         return 0;
     }
-
-    std::vector<falcon_token> embd_inp; // tokenized prompt
-    std::vector<falcon_token> inp_system = {}; // system prompt
-    std::vector<falcon_token> inp_system_baseline = {}; // system differential prompt
-    std::vector<falcon_token> inp_pfx = {}; // prefix to user prompt
-    std::vector<falcon_token> inp_sfx = {}; // suffix to user prompt
-    std::vector<std::vector<falcon_token>> stopwords = {};
 
     
     if (params.stopwords.size())
@@ -409,8 +414,6 @@ int main(int argc, char ** argv) {
 
 
 
-    std::string path_session = params.path_prompt_cache;
-    std::vector<falcon_token> session_tokens;
 
     if (!path_session.empty()) {
         fprintf(stderr, "%s: attempting to load saved session from '%s'\n", __func__, path_session.c_str());
@@ -436,7 +439,33 @@ int main(int argc, char ** argv) {
     }
 
     // tokenize the prompt
-    
+    //
+
+    printf("AVJ LOADED\n");
+
+    int ret = 0;
+    ret |= foo("moo.txt");
+    ret |= foo("quack.txt");
+    ret |= foo("oink.txt");
+
+    falcon_print_timings(ctx);
+    llama_free(ctx);
+    return 0;
+}
+
+int foo(std::string fname) {
+
+    std::ifstream file(fname);
+
+    params.prompt = "";
+
+    std::copy(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), back_inserter(params.prompt));
+
+    if (params.prompt.back() == '\n') {
+
+        params.prompt.pop_back();
+
+    }  
 
     if (params.interactive_first || params.instruct || !params.prompt.empty() || session_tokens.empty()) 
     {
@@ -1229,9 +1258,6 @@ fprintf(stderr, "+------------+-------+-------+-------+-------+---------------+-
         fprintf(stderr, "\n%s: saving final output to session file '%s'\n", __func__, path_session.c_str());
         llama_save_session_file(ctx, path_session.c_str(), session_tokens.data(), session_tokens.size());
     }
-
-    falcon_print_timings(ctx);
-    llama_free(ctx);
 
     return 0;
 }

@@ -46,8 +46,8 @@ endif
 #OPT = -Ofast
 OPT = -O3
 CFLAGS   = -I.              $(OPT) -std=c11   -fPIC
-CXXFLAGS = -I. -I./examples $(OPT) -std=c++11 -fPIC
-LDFLAGS  =
+CXXFLAGS = -I. -I./examples $(OPT) -std=c++17 -fPIC
+LDFLAGS  = -lstdc++fs
 
 ifdef LLAMA_DEBUG
 	CFLAGS   += -O0 -g -DGGML_PERF=1

@@ -56,7 +56,7 @@ void sigint_handler(int signo) {
 }
 #endif
 
-int foo(std::string fname);
+int foo(std::string iname);
 
 gpt_params params;
 std::vector<falcon_token> session_tokens;
@@ -71,8 +71,14 @@ std::vector<falcon_token> session_tokens;
     falcon_model * main_model;
     std::string path_session = params.path_prompt_cache;
 
+#include <filesystem>
+    namespace fs = std::filesystem;
+
+    std::string get_stem(const fs::path &p) { return p.stem().string(); }
 
 int main(int argc, char ** argv) {
+
+
     #if defined(_WIN32)
     SetConsoleOutputCP(CP_UTF8);
     int wargc;
@@ -444,18 +450,28 @@ int main(int argc, char ** argv) {
     printf("AVJ LOADED\n");
 
     int ret = 0;
-    ret |= foo("moo.txt");
-    ret |= foo("quack.txt");
-    ret |= foo("oink.txt");
+
+    using recursive_directory_iterator = std::filesystem::recursive_directory_iterator;
+
+    std::string myPath = "/home/LOCAL/ateylu/new/csl_prompts/prompts";
+
+        for (const auto& dirEntry : recursive_directory_iterator(myPath))
+        {
+            std::string path = dirEntry.path().string();
+            std::string output = "output/" + get_stem(dirEntry.path()) + ".txt";
+            std::cout << "PROCESSING: " << path << "\n\n" << std::endl;
+            ret |= foo(path);
+            std::cout << "\n\n\nPROCESSED: " << path << std::endl;
+        }
 
     falcon_print_timings(ctx);
     llama_free(ctx);
-    return 0;
+    return ret;
 }
 
-int foo(std::string fname) {
+int foo(std::string iname) {
 
-    std::ifstream file(fname);
+    std::ifstream file(iname);
 
     params.prompt = "";
 
